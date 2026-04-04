@@ -1,0 +1,15 @@
+# Name,   Type, SubType, Offset,   Size,     Flags
+# Non-Volatile Storage (WiFi credentials, settings)
+nvs,      data, nvs,     0x9000,   0x6000,
+
+# Physical layer initialization data (Radio calibration)
+phy_init, data, phy,     0xf000,   0x1000,
+
+# Main Application Partition (3MB - plenty for speech models)
+factory,  app,  factory, 0x10000,  0x300000,
+
+# File System for assets (Images, sounds, local files) - utilizes the rest of the 16MB
+spiffs,   data, spiffs,  0x310000, 0xCE0000,
+
+# Core Dump: Saves memory state to flash if the chip crashes for later analysis
+coredump, data, coredump,0xFF0000, 0x10000,
