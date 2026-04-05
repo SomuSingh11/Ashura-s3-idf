@@ -1,5 +1,6 @@
 #include "config.h"
 #include "pins.h"
+#include "hal.h"
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -32,14 +33,6 @@
 
 #include <vector>
 #include <string>
-
-// ============================================================
-//  Inline millis() replacement
-// ============================================================
-static inline uint64_t millis() {
-    return (uint64_t) (esp_timer_get_time() / 1000ULL
-    );
-}
 
 // ============================================================
 //  AshuraOS::init  —  Full system boot
