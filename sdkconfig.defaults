@@ -1,36 +1,72 @@
+# ============================================================
 # --- SPIRAM (PSRAM) Configuration (N16R8) ---
+# ============================================================
 CONFIG_SPIRAM=y
+CONFIG_ESP32S3_SPIRAM_SUPPORT=y
 CONFIG_SPIRAM_TYPE_ESPPSRAM64=y
 CONFIG_SPIRAM_MODE_OCT=y
+
 # Start at 40MHz for stability; if this boots, you can try 80M later
 CONFIG_SPIRAM_SPEED_40M=y
-CONFIG_SPIRAM_BOOT_INIT=y
 
-# --- Flash Settings (16MB) ---
-CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
-CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
-CONFIG_ESPTOOLPY_FLASHFREQ_40M=y
-CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+CONFIG_SPIRAM_BOOT_INIT=y
 
 # --- Memory Management ---
 # Allocations larger than 16KB go to PSRAM
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
+
 # This allows the compiler to put larger static arrays into PSRAM
 CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
 
+
+# ============================================================
+# --- Flash Settings (16MB) ---
+# ============================================================
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHFREQ_40M=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+
+
+# ============================================================
 # --- System Settings ---
+# ============================================================
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# --- Logging ---
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 CONFIG_LOG_MAXIMUM_LEVEL_DEBUG=y
 
-# --- Networking & Security ---
+
+# ============================================================
+# --- Networking ---
+# ============================================================
 CONFIG_LWIP_LOCAL_HOSTNAME="ashura"
+
+# --- SNTP --- 
+CONFIG_LWIP_SNTP_ENABLED=y
+CONFIG_LWIP_SNTP_MAX_SERVERS=3
+
+# --- WiFi tuning ---
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=4
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=8
+
+
+# ============================================================
+# --- Security / TLS ---
+# ============================================================
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
 
-# --- Safety & Watchdog (Industry Standard) ---
+# Keep HTTPS enabled (safer for WebSocket/WSS)
+CONFIG_ESP_HTTP_CLIENT_ENABLE_HTTPS=y
+
+# ============================================================
+# --- Watchdog (Industry Standard) ---
+# ============================================================
 # Enable Task Watchdog Timer (TWDT) on startup
 CONFIG_ESP_TASK_WDT_INIT=y
+CONFIG_ESP_TASK_WDT=y
 
 # Timeout in seconds. 15s is a safe "Development" middle ground.
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=15
@@ -41,18 +77,39 @@ CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y
 CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y
 
 # Panic when a watchdog timeout occurs (prints the backtrace/error)
-# This is much better for debugging than a silent reboot.
 CONFIG_ESP_TASK_WDT_PANIC=y
 
-# --- Networking: WebSocket Client Configuration ---
+
+# ============================================================
+# --- WebSocket Client ---
+# ============================================================
 # Enable the native ESP-WebSocket Client component
 CONFIG_ESP_WEBSOCKET_CLIENT=y
+
 # Set the RX/TX data buffer size (4KB) for JSON messages
 CONFIG_ESP_WEBSOCKET_CLIENT_BUFFER_SIZE=4096
+
 # Allocate 8KB stack for the WebSocket background task
 CONFIG_ESP_WEBSOCKET_CLIENT_TASK_STACK=8192
 
+
+# ============================================================
+# --- mDNS ---
+# ============================================================
 # Enable mDNS (Multicast DNS) responder component
 CONFIG_MDNS_ENABLE=y
+
 # Max services (HTTP, WS, etc.) to advertise simultaneously
 CONFIG_MDNS_MAX_SERVICES=10
+
+# ============================================================
+# --- NVS ---
+# ============================================================
+# Explicit 
+CONFIG_NVS_ENCRYPTION=n
+
+# ============================================================
+# --- C++ Runtime ---
+# ============================================================
+CONFIG_COMPILER_CXX_EXCEPTIONS=y
+
