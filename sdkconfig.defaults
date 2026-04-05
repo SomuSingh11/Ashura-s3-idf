@@ -43,3 +43,11 @@ CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y
 # Panic when a watchdog timeout occurs (prints the backtrace/error)
 # This is much better for debugging than a silent reboot.
 CONFIG_ESP_TASK_WDT_PANIC=y
+
+# --- Networking: WebSocket Client Configuration ---
+# Enable the native ESP-WebSocket Client component
+CONFIG_ESP_WEBSOCKET_CLIENT=y
+# Set the RX/TX data buffer size (4KB) for JSON messages
+CONFIG_ESP_WEBSOCKET_CLIENT_BUFFER_SIZE=4096
+# Allocate 8KB stack for the WebSocket background task
+CONFIG_ESP_WEBSOCKET_CLIENT_TASK_STACK=8192
