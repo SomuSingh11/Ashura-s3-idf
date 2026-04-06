@@ -281,5 +281,6 @@ const unsigned char* const be_free_frames[4] = {
 const Animation be_free = {
     be_free_frames,
     4,
-    100
+    100,
+	"beFree"
 };

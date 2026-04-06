@@ -1,53 +1,33 @@
 #pragma once
-
-#pragma once
-
+ 
 // ================================================================
-//  AppMenuScreen  —  Exact 3-row vertical menu
+//  AppMenuScreen  —  horizontal carousel menu
 //
 //  128×64 OLED layout:
 //
 //  ┌────────────────────────────────────────────────────────────┐
-//  │ [icon]  Clock                    ← previous item           │
-//  │┌─────────────────────────────────────────────────────────┓ │
-//  ││[icon]  Spotify    ← selected row, framed                ║ │
-//  │┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╝ │
-//  │ [icon]  Games                    ← next item               │
-//  │                                                ▐ scrollbar │
+//  │  )       [48×48 animated icon — owns the screen]       (  │
+//  │  •                                                      •  │
+//  │  ●              App Name (tight below icon)             ●  │
+//  │  •                                                      •  │
 //  └────────────────────────────────────────────────────────────┘
 //
-//  Selection frame styling:
-//    • Thin top + left border (1px)
-//    • Thick bottom + right border (2px)
-//    Creates subtle depth / shadow effect
+//  Center slot:
+//    - 48×48 pixel bitmap animation (AppIconAnim frames)
+//    - Falls back to 14×14 XBM scaled/centred if no anim
+//    - Label rendered tight below icon, centered
 //
-//  Layout coordinates:
+//  Side dot indicators (left & right, mirrored  )( shape):
+//    - Up to DOTS_MAX dots per side, vertically centred
+//    - Outward bow: center dot pushed toward screen edge
+//    - Selected = large filled disc, others = small hollow circle
+//    - No arc line — dots only
+//    - Columns sit close enough inward to never clip screen edge
 //
-//    Previous row:
-//        icon  → (4, 3)
-//        label → (22, 14)
-//        FontSecondary (5×7)
-//
-//    Selected row:
-//        icon  → (4, 25)
-//        label → (22, 36)
-//        FontPrimary (6×10)
-//
-//    Next row:
-//        icon  → (4, 47)
-//        label → (22, 58)
-//        FontSecondary (5×7)
-//
-//    Frame region:
-//        x = 0
-//        y = 21
-//        w = 123
-//        h = 21
-//
-//  Rendering behaviour:
-//    • No animation
-//    • No blinking
-//    • Dirty-flag redraws only
+//  Navigation:
+//    UP     → previous app (wraps)
+//    DOWN   → next app (wraps)
+//    SELECT → launch selected app
 // ================================================================
 
 #include "IScreen.h"
@@ -57,117 +37,92 @@
 #include <vector>
 #include <functional>
 #include <algorithm>
+#include "../assets/icons/AppIcon.h"
+#include "hal.h"
 
+
+// ── Animated icon descriptor ─────────────────────────────────
+struct AppIconAnim {
+    const uint8_t (*frames)[288];  // pointer to 2D array in flash
+    int frameCount;
+    int frameDelayMs;
+};
+
+// ── App descriptor ────────────────────────────────────────────
 struct AppItem {
-    std::string           icon;
-    std::string           name;
+    std::string           icon;         // key for 14×14 XBM (flanking + fallback)
+    std::string           name;         // display label
+    const AppIconAnim*          anim;         // nullptr → static XBM fallback
     std::function<void()> onLaunch;
 };
 
-// ── 14×14 XBM icons ──────────────────────────────────────────
-static const uint8_t  _ic_clock[28] = {
-    0xF8,0x1F, 0x04,0x20, 0xC2,0x43, 0x02,0x40,
-    0x02,0x40, 0xE2,0x47, 0xF2,0x4F, 0x02,0x40,
-    0x02,0x40, 0xC2,0x43, 0x04,0x20, 0xF8,0x1F,
-    0x00,0x00, 0x00,0x00,
-};
-static const uint8_t  _ic_games[28] = {
-    0xF8,0x1F, 0x04,0x20, 0x64,0x26, 0xF4,0x2F,
-    0x64,0x26, 0x04,0x20, 0xE4,0x27, 0xE4,0x27,
-    0x04,0x20, 0x64,0x26, 0xF4,0x2F, 0xF8,0x1F,
-    0x00,0x00, 0x00,0x00,
-};
-static const uint8_t  _ic_spotify[28] = {
-    0xF8,0x1F, 0x04,0x20, 0xE4,0x27, 0x34,0x2C,
-    0x1C,0x38, 0xE4,0x27, 0x34,0x2C, 0x1C,0x38,
-    0xE4,0x27, 0x04,0x20, 0x04,0x20, 0xF8,0x1F,
-    0x00,0x00, 0x00,0x00,
-};
-static const uint8_t  _ic_ai[28] = {
-    0xF8,0x1F, 0xFC,0x3F, 0xA4,0x25, 0xFC,0x3F,
-    0xA4,0x25, 0xFC,0x3F, 0x04,0x20, 0x84,0x21,
-    0xC4,0x23, 0xA4,0x25, 0x94,0x29, 0xF8,0x1F,
-    0x00,0x00, 0x00,0x00,
-};
-static const uint8_t  _ic_settings[28] = {
-    0x60,0x06, 0x60,0x06, 0xF8,0x1F, 0xFC,0x3F,
-    0x0E,0x70, 0x06,0x60, 0x06,0x60, 0x0E,0x70,
-    0xFC,0x3F, 0xF8,0x1F, 0x60,0x06, 0x60,0x06,
-    0x00,0x00, 0x00,0x00,
-};
-static const uint8_t  _ic_wifi[28] = {
-    0xF8,0x1F, 0x04,0x20, 0xF0,0x0F, 0x18,0x18,
-    0xE0,0x07, 0x30,0x0C, 0xC0,0x03, 0xC0,0x03,
-    0x80,0x01, 0x80,0x01, 0x00,0x00, 0x80,0x01,
-    0x00,0x00, 0x00,0x00,
-};
-static const uint8_t  _ic_wled[28] = {
-    0xFF,0x7F, 0x01,0x40, 0x01,0x40, 0xFD,0x5F,
-    0x05,0x50, 0xFD,0x5F, 0x05,0x50, 0xFD,0x5F,
-    0x01,0x40, 0x01,0x40, 0xFF,0x7F, 0x00,0x00,
-    0x00,0x00, 0x00,0x00,
-};
-static const uint8_t  _ic_default[28] = {
-    0xF8,0x1F, 0x04,0x20, 0x04,0x20, 0x04,0x20,
-    0x04,0x20, 0x84,0x21, 0x84,0x21, 0x84,0x21,
-    0x04,0x20, 0x04,0x20, 0x04,0x20, 0xF8,0x1F,
-    0x00,0x00, 0x00,0x00,
-};
+// ── Layout constants ──────────────────────────────────────────
 
-inline const uint8_t* _appIcon(const std::string& id) {
-    if (id == "clock"   ) return _ic_clock;
-    if (id == "games"   ) return _ic_games;
-    if (id == "spotify" ) return _ic_spotify;
-    if (id == "ai"      ) return _ic_ai;
-    if (id == "settings") return _ic_settings;
-    if (id == "wifi"    ) return _ic_wifi;
-    if (id == "wled"    ) return _ic_wled;
-    return _ic_default;
-}
-
-// ──  Menu coordinates ─────────────────────────
-static constexpr uint8_t IC_W       = 14;
-static constexpr uint8_t IC_H       = 14;
-
-static constexpr uint8_t PREV_ICX   = 4;
-static constexpr uint8_t PREV_ICY   = 3;
-static constexpr uint8_t PREV_LX    = 22;
-static constexpr uint8_t PREV_LY    = 14;
-
-static constexpr uint8_t SEL_ICX    = 4;
-static constexpr uint8_t SEL_ICY    = 25;
-static constexpr uint8_t SEL_LX     = 22;
-static constexpr uint8_t SEL_LY     = 36;
-
-static constexpr uint8_t NEXT_ICX   = 4;
-static constexpr uint8_t NEXT_ICY   = 47;
-static constexpr uint8_t NEXT_LX    = 22;
-static constexpr uint8_t NEXT_LY    = 58;
-
-// Frame region
-static constexpr uint8_t FX         = 0;
-static constexpr uint8_t FY         = 21;
-static constexpr uint8_t FW         = 123;
-static constexpr uint8_t FH         = 21;
+// ── Center icon layout ────────────────────────────────────────
+static constexpr int CEN_W    = 48;
+static constexpr int CEN_H    = 48;
+static constexpr int CEN_X    = (128 - CEN_W) / 2;  // = 40
+static constexpr int CEN_Y    = 2;                   // tight top margin
+ 
+// Fallback small icon
+static constexpr int SM_W     = 14;
+static constexpr int SM_H     = 14;
+ 
+// Label: sits just below icon with a small gap
+static constexpr int LABEL_Y  = CEN_Y + CEN_H + 10; // = 60
+ 
+// ── Side dot indicator constants ──────────────────────────────
+static constexpr int DOTS_MAX    = 5;
+ 
+static constexpr int DOT_R_SEL  = 4;   // selected: large filled disc
+static constexpr int DOT_R      = 2;   // others:   small hollow circle
+ 
+static constexpr int DOT_SPACING = 12; // vertical gap between dot centres
+ 
+// Arc bow: how many px the center dot is pushed outward from base
+static constexpr int ARC_BOW    = 5;
+ 
+// Base x for each column — inset enough that even with ARC_BOW
+// the outermost dot pixel stays on screen (DOT_R_SEL=4, so need ≥4px margin)
+// Left:  base=18, bow pushes to 18-5=13 → leftmost pixel at 13-4=9  ✓
+// Right: base=110, bow pushes to 110+5=115 → rightmost pixel at 115+4=119 ✓
+static constexpr int LEFT_BASE_X  = 18;
+static constexpr int RIGHT_BASE_X = 110;
+ 
+// Vertical centre of dot columns (screen centre)
+static constexpr int DOT_CY = 32;
 
 class AppMenuScreen : public IScreen {
 public:
     AppMenuScreen(DisplayManager& display, std::vector<AppItem> apps)
-        : _display(display), _apps(std::move(apps)) {}
+        : _display(display), _apps(std::move(apps)) {
+            _frame = 0;
+            _lastFrameTick = 0;
+        }
 
     void onEnter() override {
         _cursor = 0;
+        _frame  = 0;
+        _lastFrameTick = millis();
         _dirty  = true;
     }
 
+    bool needsContinuousUpdate() const override { return true; }
+
     void onButtonUp() override {
-        _cursor = (_cursor - 1 + (int)_apps.size()) % (int)_apps.size();
+        int n = (int)_apps.size();
+        _cursor = (_cursor - 1 + n) % n;
+        _frame  = 0; // reset anim to first frame on app change
+        _lastFrameTick = millis();
         _dirty  = true;
     }
 
     void onButtonDown() override {
-        _cursor = (_cursor + 1) % (int)_apps.size();
-        _dirty  = true;
+        int n = (int)_apps.size();
+        _cursor = (_cursor + 1) % n;
+        _frame         = 0;
+        _lastFrameTick = millis();
+        _dirty         = true;
     }
 
     void onButtonSelect() override {
@@ -176,64 +131,96 @@ public:
     }
 
     void update() override {
+        const AppItem& cur = _apps[_cursor];
+ 
+        // Tick animation
+        if (cur.anim && cur.anim->frameCount > 1) {
+            uint64_t now = millis();
+            if (now - _lastFrameTick >= (uint64_t)cur.anim->frameDelayMs) {
+                _lastFrameTick = now;
+                _frame = (_frame + 1) % cur.anim->frameCount;
+                _dirty = true;
+            }
+        }
+ 
         if (!_dirty) return;
-
-        int   n = (int)_apps.size();
+        _dirty = false;
+ 
+        int n = (int)_apps.size();
+        if (n == 0) return;
+ 
         auto& u = _display.raw();
         u.clearBuffer();
-
-        if (n == 0) {
-            u.setFont(u8g2_font_6x10_tr);
-            u.drawStr(32, 35, "No apps");
-            u.sendBuffer();
-            _dirty = false;
-            return;
+ 
+        // ── 1. Center icon ─────────────────────────────────────
+        if (cur.anim && cur.anim->frames) {
+            // 48×48 bitmap: wBytes = 48/8 = 6
+            u.drawBitmap(CEN_X, CEN_Y, 6, CEN_H, cur.anim->frames[_frame]);
+        } else {
+            // Fallback: 14×14 XBM centred in 48×48 slot
+            int fbX = CEN_X + (CEN_W - SM_W) / 2;
+            int fbY = CEN_Y + (CEN_H - SM_H) / 2;
+            u.drawXBM(fbX, fbY, SM_W, SM_H, _appIcon(cur.icon));
         }
-
-        int iPrev = (_cursor - 1 + n) % n;
-        int iNext = (_cursor + 1) % n;
-
-        // ── Prev row ──────────────────────────────────────────
-        u.setFont(u8g2_font_5x7_tr);
-        u.drawXBM(PREV_ICX, PREV_ICY, IC_W, IC_H, _appIcon(_apps[iPrev].icon));
-        u.drawStr(PREV_LX, PREV_LY, _apps[iPrev].name.c_str());
-
-        // ── Selection frame — thin top+left, thick bottom+right ──
-        // Top edge (1px)
-        u.drawHLine(FX, FY, FW);
-        // Left edge (1px)
-        u.drawVLine(FX, FY, FH);
-        // Bottom edge (2px thick)
-        u.drawHLine(FX, FY + FH - 1, FW);
-        u.drawHLine(FX, FY + FH,     FW);
-        // Right edge (2px thick)
-        u.drawVLine(FX + FW - 1, FY, FH);
-        u.drawVLine(FX + FW,     FY, FH);
-
-        // ── Selected row ──────────────────────────────────────
-        u.drawXBM(SEL_ICX, SEL_ICY, IC_W, IC_H, _appIcon(_apps[_cursor].icon));
+ 
+        // ── 2. Label ───────────────────────────────────────────
         u.setFont(u8g2_font_6x10_tr);
-        u.drawStr(SEL_LX, SEL_LY, _apps[_cursor].name.c_str());
-
-        // ── Next row ──────────────────────────────────────────
-        u.setFont(u8g2_font_5x7_tr);
-        u.drawXBM(NEXT_ICX, NEXT_ICY, IC_W, IC_H, _appIcon(_apps[iNext].icon));
-        u.drawStr(NEXT_LX, NEXT_LY, _apps[iNext].name.c_str());
-
-        // ── Scrollbar ─────────────────────────────────────────
-        for (int y = 0; y < 64; y += 2) u.drawPixel(126, y);
-        if (n > 1) {
-            int bH = std::max(6, 64 / n);
-            int bY = (int)((float)(64 - bH) * _cursor / (float)(n - 1));
-            u.drawBox(125, bY, 3, bH);
-        }
-
+        int lw = u.getStrWidth(cur.name.c_str());
+        u.drawStr((128 - lw) / 2, LABEL_Y, cur.name.c_str());
+ 
+        // ── 3. Side dot indicators ─────────────────────────────
+        _drawSideDots(u, n);
+ 
         u.sendBuffer();
-        _dirty = false;
     }
 
 private:
     DisplayManager&      _display;
     std::vector<AppItem> _apps;
     int                  _cursor = 0;
+    int                  _frame  = 0;
+    uint64_t             _lastFrameTick = 0;
+
+    // ── Dot indicator ─────────────────────────────────────────
+    // Quadratic arc offset — no floats, no math.h
+    // Returns outward bow offset in px for dot i of n.
+    // Center dot gets ARC_BOW, end dots get 0.
+    int _arcOffset(int i, int n) const {
+        if (n <= 1) return 0;
+        int t100 = (200 * i / (n - 1)) - 100; // maps i → [-100, 100]
+        int t2   = t100 * t100;                // t² × 10000
+        return (ARC_BOW * (10000 - t2)) / 10000;
+    }
+ 
+    void _drawSideDots(U8G2& u, int n) {
+        if (n <= 1) return;
+ 
+        int visible = std::min(n, DOTS_MAX);
+ 
+        // Sliding window centred on _cursor
+        int start = 0;
+        if (n > visible) {
+            start = _cursor - visible / 2;
+            start = std::max(0, std::min(start, n - visible));
+        }
+ 
+        int totalH = (visible - 1) * DOT_SPACING;
+        int topY   = DOT_CY - totalH / 2;
+ 
+        for (int i = 0; i < visible; i++) {
+            int appIdx = start + i;
+            int bow    = _arcOffset(i, visible);
+            int lx     = LEFT_BASE_X  - bow;  // left: bow pushes left (outward)
+            int rx     = RIGHT_BASE_X + bow;  // right: bow pushes right (outward)
+            int y      = topY + i * DOT_SPACING;
+ 
+            if (appIdx == _cursor) {
+                u.drawDisc(lx, y, DOT_R_SEL);
+                u.drawDisc(rx, y, DOT_R_SEL);
+            } else {
+                u.drawCircle(lx, y, DOT_R);
+                u.drawCircle(rx, y, DOT_R);
+            }
+        }
+    }
 };

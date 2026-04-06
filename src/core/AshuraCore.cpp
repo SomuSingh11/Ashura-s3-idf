@@ -31,6 +31,12 @@
 #include "../ui/screens/vibes/VibePlayerScreen.h"
 #include "../application/vibes/VibeRegistry.h"
 
+#include "ui/assets/icons/clock.h"
+#include "ui/assets/icons/games.h"
+#include "ui/assets/icons/settings.h"
+#include "ui/assets/icons/vibes.h"
+#include "ui/assets/icons/wled.h"
+
 #include <vector>
 #include <string>
 
@@ -440,7 +446,7 @@ void AshuraCore::_initNetwork()
 
 void AshuraCore::_updateNetwork(uint64_t now){
   NetState        prevNet   = _wifi.state();
-  WebSocketState  prevWs    = _websocket.webSocketState();
+  //WebSocketState  prevWs    = _websocket.webSocketState();
 
   // ── 1. Always tick WiFiManager ────────────────────────────
     _wifi.update();
@@ -548,6 +554,14 @@ void AshuraCore::_buildAppMenu()
     AppItem item;
     item.icon = desc.icon;
     item.name = desc.name;
+    item.anim = nullptr;
+
+    // Assign per app id
+    if      (id == "wled"    ) item.anim = &wledAnim;
+    else if (id == "clock"   ) item.anim = &clockAnim;
+    else if (id == "settings") item.anim = &settingsAnim;
+    else if (id == "vibes"   ) item.anim = &vibesAnim;
+    else if (id == "games"   ) item.anim = &gamesAnim;
 
     // Capture id by value for lambda
     std::string capturedId = id;

@@ -539,8 +539,7 @@ const unsigned char monkey_walkframe_0_delay_0 []  = {
 };
 
 // Array of all bitmaps for convenience. (Total bytes used to store images in  = 8320)
-const int monkey_walkallArray_LEN = 8;
-const unsigned char* const monkey_walk_frames[8] = {
+const unsigned char* const monkey_walk_frames[] = {
 	monkey_walkframe_0_delay_0,
 	monkey_walkframe_1_delay_0,
 	monkey_walkframe_2_delay_0,
@@ -554,5 +553,6 @@ const unsigned char* const monkey_walk_frames[8] = {
 const Animation monkey_walk = {
     monkey_walk_frames, 
     8,
-    100
+    100,
+	"monkeyWalk"
 };
