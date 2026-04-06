@@ -7,7 +7,6 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_sntp.h"
-#include "lwip/apps/sntp.h"
 
 #include "config.h"
 #include "hal.h"
@@ -31,17 +30,17 @@ class TimeManager {
                 sntp_restart();
             } else {
                 // First sync — initialize SNTP
-                sntp_setoperatingmode(SNTP_OPMODE_POLL);
-                sntp_setservername(0, "pool.ntp.org");
-                sntp_setservername(1, "time.google.com");
-                sntp_setservername(2, "time.nist.gov");
+                esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+                esp_sntp_setservername(0, "pool.ntp.org");
+                esp_sntp_setservername(1, "time.google.com");
+                esp_sntp_setservername(2, "time.nist.gov");
 
                 // Set timezone via POSIX TZ string
                 // IST = UTC+5:30
                 setenv("TZ", "IST-5:30", 1);
                 tzset();
 
-                sntp_init();
+                esp_sntp_init();
                 _sntpStarted = true;
             }
 

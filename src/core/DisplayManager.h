@@ -2,44 +2,37 @@
 
 #include "pins.h"
 #include "esp_log.h"
+#include "esp_rom_sys.h"
 #include "driver/i2c.h"
-
-#include <U8g2lib.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "u8g2.h"
 
 // ============================================================
-//  DisplayManager  —  OLED driver wrapper
-//
-//  U8G2 with IDF I2C HAL.
-//  All drawing calls identical to Arduino version.
+//  DisplayManager  —  OLED driver wrapper (ESP-IDF / u8g2 C API)
+//  Provides U8G2-like methods for existing UI code.
 // ============================================================
 
-// ── U8G2 IDF HAL ─────────────────────────────────────────────
-// U8G2 needs a callback for I2C communication under IDF.
-// We implement the two required functions here.
-
+// ── U8G2 IDF HAL callbacks ───────────────────────────────────
 
 static uint8_t u8g2_esp32_i2c_byte_cb(
     u8x8_t* u8x8,
     uint8_t msg,
     uint8_t arg_int,
-    void*   arg_ptr)
+    void* arg_ptr)
 {
     static i2c_cmd_handle_t cmd = nullptr;
 
     switch (msg) {
-        case U8X8_MSG_BYTE_SEND: {
-            uint8_t* data = (uint8_t*)arg_ptr;
-            i2c_master_write(cmd, data, arg_int, true);
+        case U8X8_MSG_BYTE_SEND:
+            i2c_master_write(cmd, (uint8_t*)arg_ptr, arg_int, true);
             break;
-        }
 
         case U8X8_MSG_BYTE_INIT:
-            break;
-
         case U8X8_MSG_BYTE_SET_DC:
             break;
 
-        case U8X8_MSG_BYTE_START_TRANSFER: {
+        case U8X8_MSG_BYTE_START_TRANSFER:
             cmd = i2c_cmd_link_create();
             i2c_master_start(cmd);
             i2c_master_write_byte(
@@ -48,19 +41,13 @@ static uint8_t u8g2_esp32_i2c_byte_cb(
                 true
             );
             break;
-        }
 
-        case U8X8_MSG_BYTE_END_TRANSFER: {
+        case U8X8_MSG_BYTE_END_TRANSFER:
             i2c_master_stop(cmd);
-            i2c_master_cmd_begin(
-                I2C_NUM_0,
-                cmd,
-                pdMS_TO_TICKS(20)
-            );
+            i2c_master_cmd_begin(I2C_NUM_0, cmd, pdMS_TO_TICKS(20));
             i2c_cmd_link_delete(cmd);
             cmd = nullptr;
             break;
-        }
 
         default:
             return 0;
@@ -69,13 +56,14 @@ static uint8_t u8g2_esp32_i2c_byte_cb(
 }
 
 static uint8_t u8g2_esp32_gpio_and_delay_cb(
-    u8x8_t* u8x8,
+    u8x8_t*,
     uint8_t msg,
     uint8_t arg_int,
-    void*   arg_ptr)
+    void*)
 {
     switch (msg) {
         case U8X8_MSG_GPIO_AND_DELAY_INIT:
+        case U8X8_MSG_GPIO_RESET:
             break;
 
         case U8X8_MSG_DELAY_MILLI:
@@ -90,90 +78,126 @@ static uint8_t u8g2_esp32_gpio_and_delay_cb(
             esp_rom_delay_us(1);
             break;
 
-        case U8X8_MSG_GPIO_RESET:
-            break;
-
         default:
             return 0;
     }
     return 1;
 }
 
+// ============================================================
+//  U8G2 compatibility facade
+//  Keeps old U8G2-style callsites working on top of u8g2 C API.
+// ============================================================
+
+class U8G2 {
+public:
+    U8G2() = default;
+
+    void attach(u8g2_t* native) { _native = native; }
+    u8g2_t* native() { return _native; }
+    const u8g2_t* native() const { return _native; }
+
+    void clearBuffer() { u8g2_ClearBuffer(_native); }
+    void sendBuffer() { u8g2_SendBuffer(_native); }
+
+    void setFont(const uint8_t* font) { u8g2_SetFont(_native, font); }
+    void setDrawColor(uint8_t c) { u8g2_SetDrawColor(_native, c); }
+    void setFontMode(uint8_t m) { u8g2_SetFontMode(_native, m); }
+    void setContrast(uint8_t c) { u8g2_SetContrast(_native, c); }
+
+    void drawStr(int x, int y, const char* s) { u8g2_DrawStr(_native, x, y, s); }
+    void drawLine(int x1, int y1, int x2, int y2) { u8g2_DrawLine(_native, x1, y1, x2, y2); }
+    void drawFrame(int x, int y, int w, int h) { u8g2_DrawFrame(_native, x, y, w, h); }
+    void drawBox(int x, int y, int w, int h) { u8g2_DrawBox(_native, x, y, w, h); }
+    void drawRBox(int x, int y, int w, int h, int r) { u8g2_DrawRBox(_native, x, y, w, h, r); }
+    void drawCircle(int x, int y, int r) { u8g2_DrawCircle(_native, x, y, r, U8G2_DRAW_ALL); }
+    void drawDisc(int x, int y, int r) { u8g2_DrawDisc(_native, x, y, r, U8G2_DRAW_ALL); }
+    void drawPixel(int x, int y) { u8g2_DrawPixel(_native, x, y); }
+
+    void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3) {
+        u8g2_DrawTriangle(_native, x1, y1, x2, y2, x3, y3);
+    }
+
+    int getStrWidth(const char* s) { return u8g2_GetStrWidth(_native, s); }
+
+    void drawRFrame(int x, int y, int w, int h, int r) { u8g2_DrawRFrame(_native, x, y, w, h, r); }
+    void drawHLine(int x, int y, int w) { u8g2_DrawHLine(_native, x, y, w); }
+    void drawVLine(int x, int y, int h) { u8g2_DrawVLine(_native, x, y, h); }
+
+    void drawXBM(int x, int y, int w, int h, const uint8_t* bmp) {
+    u8g2_DrawXBMP(_native, x, y, w, h, bmp);
+    }
+
+    void drawBitmap(int x, int y, int w, int h, const uint8_t* bmp) {
+    u8g2_DrawXBMP(_native, x, y, w, h, bmp);
+    }
+
+private:
+    u8g2_t* _native = nullptr;
+};
+
 // ── DisplayManager class ─────────────────────────────────────
 
 class DisplayManager {
-    public:
-        void init() {
-            // Initialize I2C driver
-            i2c_config_t conf = {};
-            conf.mode             = I2C_MODE_MASTER;
-            conf.sda_io_num       = OLED_SDA;
-            conf.scl_io_num       = OLED_SCL;
-            conf.sda_pullup_en    = GPIO_PULLUP_ENABLE;
-            conf.scl_pullup_en    = GPIO_PULLUP_ENABLE;
-            conf.master.clk_speed = 400000; // 400kHz fast mode
+public:
+    void init() {
+        i2c_config_t conf = {};
+        conf.mode = I2C_MODE_MASTER;
+        conf.sda_io_num = OLED_SDA;
+        conf.scl_io_num = OLED_SCL;
+        conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+        conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+        conf.master.clk_speed = 400000;
 
-            i2c_param_config(I2C_NUM_0, &conf);
-            i2c_driver_install(I2C_NUM_0, conf.mode, 0, 0, 0);
+        i2c_param_config(I2C_NUM_0, &conf);
+        i2c_driver_install(I2C_NUM_0, conf.mode, 0, 0, 0);
 
-            // Initialize U8G2 with IDF callbacks
-            u8g2_Setup_ssd1306_i2c_128x64_noname_f(
-                _display.getU8g2(),
-                U8G2_R0,
-                u8g2_esp32_i2c_byte_cb,
-                u8g2_esp32_gpio_and_delay_cb
-            );
+        u8g2_Setup_ssd1306_i2c_128x64_noname_f(
+            &_u8g2,
+            U8G2_R0,
+            u8g2_esp32_i2c_byte_cb,
+            u8g2_esp32_gpio_and_delay_cb
+        );
 
-            // Set I2C address
-            u8x8_SetI2CAddress(_display.getU8x8(), OLED_ADDRESS << 1);
+        // u8g2 expects 8-bit I2C address here.
+        u8g2_SetI2CAddress(&_u8g2, OLED_ADDRESS << 1);
+        u8g2_InitDisplay(&_u8g2);
+        u8g2_SetPowerSave(&_u8g2, 0);
+        u8g2_SetContrast(&_u8g2, 255);
 
-            _display.begin();
-            _display.setContrast(255);
-            clear();
-            sendBuffer();
+        _raw.attach(&_u8g2);
 
-            ESP_LOGI(TAG, "SSD1306 ready");
-        };
+        clear();
+        sendBuffer();
 
-        // ── Buffer control ────────────────────────────────────────
-        void clear()      { _display.clearBuffer(); }
-        void sendBuffer() { _display.sendBuffer();  }
+        ESP_LOGI(TAG, "SSD1306 ready");
+    }
 
-        // ── Font helpers ──────────────────────────────────────────
-        void setFontLarge(){ _display.setFont(u8g2_font_5x7_tr); }
-        void setFontMedium(){ _display.setFont(u8g2_font_6x10_tr); }
-        void setFontSmall(){ _display.setFont(u8g2_font_10x20_tr); }
+    U8G2& raw() { return _raw; }
 
-        // ── Drawing primitives ────────────────────────────────────
-        void drawStr(int x, int y, const char* str){
-            _display.drawStr(x, y, str);
-        };
-        void drawLine(int x1, int x2, int y1, int y2) {
-            _display.drawLine(x1, y1, x2, y2);
-        };
-        void drawRect(int x, int y, int w, int h) {
-            _display.drawFrame(x, y, w, h);
-        };
-        void drawFilledRect(int x, int y, int w, int h) {
-            _display.drawBox(x, y, w, h);
-        };
-        void drawCircle(int x, int y, int r) {
-            _display.drawCircle(x, y, r);
-        };
-        void drawPixel(int x, int y) {
-            _display.drawPixel(x, y);
-        };
+    // Buffer control
+    void clear() { _raw.clearBuffer(); }
+    void sendBuffer() { _raw.sendBuffer(); }
 
-        // ── Dimensions ────────────────────────────────────────────
-        int getWidth() const {return OLED_WIDTH;};
-        int getHeight() const {return OLED_HEIGHT;};
+    // Font helpers
+    void setFontLarge() { _raw.setFont(u8g2_font_10x20_tr); }
+    void setFontMedium() { _raw.setFont(u8g2_font_6x10_tr); }
+    void setFontSmall() { _raw.setFont(u8g2_font_5x7_tr); }
 
-        // ── Raw access for screens that use U8G2 directly ─────────
-        U8G2& raw () { return _display; }
+    // Drawing primitives
+    void drawStr(int x, int y, const char* str) { _raw.drawStr(x, y, str); }
+    void drawLine(int x1, int y1, int x2, int y2) { _raw.drawLine(x1, y1, x2, y2); }
+    void drawRect(int x, int y, int w, int h) { _raw.drawFrame(x, y, w, h); }
+    void drawFilledRect(int x, int y, int w, int h) { _raw.drawBox(x, y, w, h); }
+    void drawCircle(int x, int y, int r) { _raw.drawCircle(x, y, r); }
+    void drawPixel(int x, int y) { _raw.drawPixel(x, y); }
 
-    private:
-        // Use full buffer variant
-        U8G2_SSD1306_128X64_NONAME_F_2ND_HW_I2C _display{U8G2_R0};
+    int getWidth() const { return OLED_WIDTH; }
+    int getHeight() const { return OLED_HEIGHT; }
 
-        static constexpr const char* TAG = "DisplayManager";
+private:
+    u8g2_t _u8g2 {};
+    U8G2 _raw;
+
+    static constexpr const char* TAG = "DisplayManager";
 };

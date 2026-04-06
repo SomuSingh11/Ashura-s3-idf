@@ -42,7 +42,7 @@ public:
     void onEnter() override {
         // Pre-fill on every entry — picker lambdas update in place
         if (_host.empty()) _host    = _ws.host();
-        if (_port.empty()) _port    = std::string(_ws.port());
+        if (_port.empty()) _port    = std::to_string(_ws.port());
         if (_path.empty()) _path    = _ws.path();
         _dirty = true;
     }

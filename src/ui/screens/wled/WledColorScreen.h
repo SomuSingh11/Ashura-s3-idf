@@ -169,7 +169,7 @@ private:
     }
 
     void _drawPresets(U8G2& u) {
-        int start = max(0, _presetPos - (ITEMS_VIS - 1));
+        int start = std::max(0, _presetPos - (ITEMS_VIS - 1));
 
         for (int i = 0; i < ITEMS_VIS; i++) {
             int idx = start + i;

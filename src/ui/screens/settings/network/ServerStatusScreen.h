@@ -98,7 +98,7 @@ class ServerStatusScreen : public IScreen {
         }
 
         // ── Status Strings ─────────────────────────────────────────
-        static String _stateStr(WebSocketState s) {
+        static std::string _stateStr(WebSocketState s) {
             switch (s) {
                 case WebSocketState::IDLE:        return "Idle";
                 case WebSocketState::CONNECTING:  return "Connecting...";

@@ -249,14 +249,22 @@ int WiFiManager::rssi() const {
 // ============================================================
 //  Private
 // ============================================================
-
 bool WiFiManager::_checkConnected() {
     if (!_netif) return false;
 
-    esp_netif_ip_info_t ip_info;
+    // esp_netif_get_ip_info is not safe to call from main task context
+    // while WiFi driver is running on core 0.
+    // Use wifi_ap_record which is thread-safe, combined with IP check.
+    
+    wifi_ap_record_t ap_info;
+    if (esp_wifi_sta_get_ap_info(&ap_info) != ESP_OK) {
+        return false; // Not associated with any AP
+    }
+
+    // Associated with AP — now safely get IP
+    esp_netif_ip_info_t ip_info = {};
     esp_netif_get_ip_info(_netif, &ip_info);
 
-    // Connected if we have a non-zero IP address
     return ip_info.ip.addr != 0;
 }
 

@@ -111,7 +111,7 @@ class HomeScreen : public IScreen {
             u.clearBuffer();
 
             // ── Companion eyes — left side, vertically centred ────
-            _companion.draw(u, 0, 28, 56, 26);
+            _companion.draw(u.native(), 0, 28, 56, 26);
 
             u.setFont(u8g2_font_5x7_tr);
 

@@ -38,7 +38,7 @@ class WledDeviceScreen : public IScreen {
             : _display(display), _ui(ui), _wled(wled) {}
 
         void onEnter() override {
-            _pos        = max(0, _wled.activeIndex());
+            _pos        = std::max(0, _wled.activeIndex());
             _scanning   = false;
             _msg        = "";
             _dirty      = true;

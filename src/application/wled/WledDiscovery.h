@@ -42,7 +42,7 @@ public:
 
         if (err != ESP_OK || !results) {
             ESP_LOGI(TAG, "No WLED devices found");
-            mdns_free(results);
+            mdns_query_results_free(results);
             return 0;
         }
 
@@ -93,7 +93,7 @@ public:
             r = r->next;
         }
 
-        mdns_free(results);
+        mdns_query_results_free(results);
         return (int)out.size();
     }
 

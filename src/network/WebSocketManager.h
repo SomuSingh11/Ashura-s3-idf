@@ -8,7 +8,7 @@
 #include "esp_websocket_client.h"
 
 #include "config.h"
-#include "core/hal.h"
+#include "hal.h"
 
 
 // ================================================================

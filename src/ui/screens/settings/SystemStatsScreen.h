@@ -24,7 +24,9 @@
 
 #include <string>
 #include <esp_system.h>
-#include <esp_spi_flash.h>
+#include <spi_flash_mmap.h>
+#include <esp_flash.h>
+#include <esp_psram.h>
 #include <esp_heap_caps.h>
 #include <vector>
 #include <algorithm>
@@ -56,7 +58,7 @@ public:
             if (_pos < _winPos) _winPos = _pos;
         } else {
             _pos = _items.size() - 1;
-            _winPos = max(0, _pos - (SUBMENU_ITEMS_ON_SCREEN - 1));
+            _winPos = std::max(0, _pos - (SUBMENU_ITEMS_ON_SCREEN - 1));
         }
         _dirty = true;
     }
@@ -141,9 +143,11 @@ private:
 
         // ---------------- DEVICE STATUS ----------------
         snprintf(buf, sizeof(buf),
-         "%-9s %02lu:%02lu:%02lu",
+         "%-9s %02llu:%02llu:%02llu",
          "Uptime",
-         hr % 24, mn % 60, s % 60);
+         (unsigned long long)(hr % 24),
+         (unsigned long long)(mn % 60),
+         (unsigned long long)(s % 60));
         _items.push_back(std::string(buf));
 
         snprintf(buf, sizeof(buf),
@@ -212,57 +216,47 @@ private:
 
 
         // ---------- PSRAM ----------
-        if (psramFound()) {
-            uint32_t totalPsram = ESP.getPsramSize() / 1024;
-            uint32_t freePsram  =
-                heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024;
-
-            snprintf(buf, sizeof(buf),
-             "%-9s %lu/%lu KB",
-             "PSRAM",
-             freePsram,
-             totalPsram);
+        if (esp_psram_is_initialized()) {
+            size_t totalPsram = esp_psram_get_size() / 1024;
+            size_t freePsram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024;
+            snprintf(buf, sizeof(buf), "%-9s %lu/%lu KB", "PSRAM",
+            (unsigned long)freePsram, (unsigned long)totalPsram);
             _items.push_back(std::string(buf));
-
         } else {
-            snprintf(buf, sizeof(buf),
-             "%-9s %s",
-             "Ext RAM",
-             "N/A");
+            snprintf(buf, sizeof(buf), "%-9s %s", "Ext RAM", "N/A");
             _items.push_back(std::string(buf));
         }
 
-        snprintf(buf, sizeof(buf),
-         "%-9s %lu MHz",
-         "CPU",
-         (uint64_t)getCpuFrequencyMhz());
-        _items.push_back(std::string(buf));
+        // snprintf(buf, sizeof(buf),
+        //  "%-9s %lu MHz",
+        //  "CPU",
+        //  (uint64_t)(esp_clk_cpu_freq() / 1000000));
+        // _items.push_back(std::string(buf));
 
         // ---------------- HARDWARE ----------------
-        snprintf(buf, sizeof(buf),
-         "%-9s %lu MB",
-         "Flash",
-         spi_flash_get_chip_size() / (1024 * 1024));
-        _items.push_back(std::string(buf));
+        // uint32_t flash_size = 0;
+        // esp_flash_get_size(nullptr, &flash_size);
+        // snprintf(buf, sizeof(buf), "%-9s %lu MB", "Flash",
+        // (unsigned long)(flash_size / (1024 * 1024)));
 
-        snprintf(buf, sizeof(buf),
-         "%-9s %s",
-         "Chip",
-         ESP.getChipModel());
-        _items.push_back(std::string(buf));
+        // snprintf(buf, sizeof(buf),
+        //  "%-9s %s",
+        //  "Chip",
+        //  ESP.getChipModel());
+        // _items.push_back(std::string(buf));
 
-        snprintf(buf, sizeof(buf),
-         "%-9s %d",
-         "Chip Rev",
-         ESP.getChipRevision());
-        _items.push_back(std::string(buf));
+        // snprintf(buf, sizeof(buf),
+        //  "%-9s %d",
+        //  "Chip Rev",
+        //  ESP.getChipRevision());
+        // _items.push_back(std::string(buf));
 
-        // ---------------- SYSTEM ----------------
-        snprintf(buf, sizeof(buf),
-         "%-9s %s",
-         "SDK",
-         ESP.getSdkVersion());
-        _items.push_back(std::string(buf));
+        // // ---------------- SYSTEM ----------------
+        // snprintf(buf, sizeof(buf),
+        //  "%-9s %s",
+        //  "SDK",
+        //  ESP.getSdkVersion());
+        // _items.push_back(std::string(buf));
 
         snprintf(buf, sizeof(buf),
          "%-9s %s",
@@ -302,7 +296,7 @@ private:
 
         if (_items.size() <= 1) return;
 
-        int blockH = max(6, H / (int)_items.size());
+        int blockH = std::max(6, H / (int)_items.size());
         int blockY = (int)((float)(H - blockH) *
                            _pos / (float)(_items.size() - 1));
         u.drawBox(125, blockY, 3, blockH);

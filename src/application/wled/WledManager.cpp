@@ -136,7 +136,7 @@ void WledManager::removeDevice(int index) {
 
     // clamp active index
     if(_activeIndex >= (int)_devices.size()) {
-        _activeIndex = max(0, (int)_devices.size() - 1);
+        _activeIndex = std::max(0, (int)_devices.size() - 1);
     }
 
     saveToNVS();

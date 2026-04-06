@@ -113,3 +113,5 @@ CONFIG_NVS_ENCRYPTION=n
 # ============================================================
 CONFIG_COMPILER_CXX_EXCEPTIONS=y
 
+
+CONFIG_SPIRAM_MEMTEST=n

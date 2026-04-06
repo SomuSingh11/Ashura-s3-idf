@@ -42,14 +42,11 @@ enum class NotificationType : uint8_t {
 };
 
 // Helper - return string literal for display
-inline char* notifTypeName(NotificationType t){
-    switch(t){
-        case NotificationType::SYSTEM:
-            return "SYS";
-        case NotificationType::ALERT:
-            return "ALERT";
-        case NotificationType::MESSAGE:
-            return "MSG";
+inline const char* notifTypeName(NotificationType t) {
+    switch (t) {
+        case NotificationType::SYSTEM:  return "SYS";
+        case NotificationType::ALERT:   return "ALERT";
+        case NotificationType::MESSAGE: return "MSG";
     }
     return "UNK";
 }

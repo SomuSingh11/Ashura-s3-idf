@@ -11,6 +11,9 @@
 #include "application/wled/WledDevice.h"
 #include "application/wled/WledState.h"
 
+#include "cJSON.h"
+#include "esp_heap_caps.h"
+
 
 // ================================================================
 //  WledClient  —  HTTP interface to one WLED device
@@ -172,58 +175,38 @@ class WledClient {
         const std::string& lastError() const { return _lastError; }
 
     private:
-        WledDevice  _device;
-        String      _lastError;
+        WledDevice      _device;
+        std::string     _lastError;
 
         static constexpr const char* TAG = "WledClient";
 
         // Perform HTTP GET request and return response body if successful
         bool _get(const std::string& url, std::string& body) {
-            // Response buffer — WLED responses are small
-            // but effects list can be large, so allocate in PSRAM
             const size_t BUF_SIZE = 32768;
             char* buf = (char*)heap_caps_malloc(
                 BUF_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-            if (!buf) {
-                // Fallback to internal RAM if PSRAM unavailable
-                buf = (char*)malloc(BUF_SIZE);
-            }
-            if (!buf) {
-                _lastError = "OOM";
-                return false;
-            }
+            if (!buf) buf = (char*)malloc(BUF_SIZE);
+            if (!buf) { _lastError = "OOM"; return false; }
             memset(buf, 0, BUF_SIZE);
 
             esp_http_client_config_t config = {};
-            config.url             = url.c_str();
-            config.timeout_ms      = WLED_HTTPCLIENT_TIMEOUT;
-            config.user_data       = buf;
-            config.buffer_size     = 2048;
-
-            esp_http_client_handle_t client =
-                esp_http_client_init(&config);
-
-            // Register event handler to capture response body
-            esp_http_client_register_events(
-                client,
-                HTTP_EVENT_ON_DATA,
-                [](esp_http_client_event_t* evt) -> esp_err_t {
-                    if (evt->event_id == HTTP_EVENT_ON_DATA &&
-                        evt->user_data) {
-                        // Append to buffer
-                        char*  outBuf = (char*)evt->user_data;
-                        size_t curLen = strlen(outBuf);
-                        if (curLen + evt->data_len < 32767) {
-                            memcpy(outBuf + curLen,
-                                evt->data,
-                                evt->data_len);
-                        }
+            config.url        = url.c_str();
+            config.timeout_ms = WLED_HTTPCLIENT_TIMEOUT;
+            config.user_data  = buf;
+            config.buffer_size = 2048;
+            // Pass handler directly in config — no register_events call needed
+            config.event_handler = [](esp_http_client_event_t* evt) -> esp_err_t {
+                if (evt->event_id == HTTP_EVENT_ON_DATA && evt->user_data) {
+                    char*  outBuf = (char*)evt->user_data;
+                    size_t curLen = strlen(outBuf);
+                    if (curLen + evt->data_len < 32767) {
+                        memcpy(outBuf + curLen, evt->data, evt->data_len);
                     }
-                    return ESP_OK;
-                },
-                nullptr
-            );
+                }
+                return ESP_OK;
+            };
 
+            esp_http_client_handle_t client = esp_http_client_init(&config);
             esp_err_t err    = esp_http_client_perform(client);
             int       status = esp_http_client_get_status_code(client);
             esp_http_client_cleanup(client);

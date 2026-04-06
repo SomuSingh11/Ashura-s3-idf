@@ -88,8 +88,6 @@ private:
             "12","1","2","3","4","5","6","7","8","9","10","11"
         };
 
-        u8g2_font_chikita_tr;   // declare we'll use it below
-
         for (int j = 0; j < 12; j++) {
             float a = j * 30 * DEG;
 
@@ -204,17 +202,25 @@ private:
         u.setFont(u8g2_font_5x7_tr);
 
         if (Time().isSynced()) {
-            struct tm t;
-            if (getLocalTime(&t, 0)) {
-                char buf[16];
-                snprintf(buf, sizeof(buf), "%s  %d%s",
-                         DAY[t.tm_wday], t.tm_mday, MON[t.tm_mon]);
-                // Centre in right panel (x=62..128 = 66px wide)
-                int w = u.getStrWidth(buf);
-                u.drawStr(62 + (66 - w) / 2, 62, buf);
+            time_t now_t;
+            struct tm t = {};
+            
+            // Native ESP-IDF / C way to get current time
+            time(&now_t);
+            localtime_r(&now_t, &t);
+
+            char buf[16];
+            // Note: tm_mday and tm_mon are standard C struct members
+            snprintf(buf, sizeof(buf), "%s  %d %s",
+                    DAY[t.tm_wday], t.tm_mday, MON[t.tm_mon]);
+
+            u.setFont(u8g2_font_chikita_tr); // Set the font right before drawing
+            
+            // Centre in right panel (x=62..128 = 66px wide)
+            int w = u.getStrWidth(buf);
+            u.drawStr(62 + (66 - w) / 2, 62, buf);
+            } else {
+                u.drawStr(68, 8, "No date");
             }
-        } else {
-            u.drawStr(68, 8, "No date");
-        }
     }
 };

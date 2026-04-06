@@ -263,7 +263,7 @@ void AshuraCore::_bootUI()
 
   if(bootAnimation == nullptr){
     ESP_LOGI(CORE_TAG, "Using SplashScreen");
-    _ui.pushScreen(new SplashScreen(_display));
+    //_ui.pushScreen(new SplashScreen(_display));
   } else {
     ESP_LOGI(CORE_TAG, "Using VibePlayerScreen: %s", bootAnimation->name);
     _ui.pushScreen(new VibePlayerScreen(_display, bootAnimation));
