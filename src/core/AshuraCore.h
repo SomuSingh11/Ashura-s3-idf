@@ -63,8 +63,8 @@ class AshuraCore {
         // Button Debounce State
         // ======================================================== 
         struct BtnState {
-            bool            lastRaw         = true;     // Last raw reading from pin (IDF gpio_get_level)
-            bool            state           = true;     // Debounced state
+            bool            lastRaw         = false;     // Last raw reading from pin (IDF gpio_get_level)
+            bool            state           = false;     // Debounced state
             uint64_t        lastDebounce    = 0;        // Timestamp of last state change for debounce
             uint64_t        pressStart      = 0;        // Timestamp when button was pressed (for long press)
             bool            longFired       = false;    // Whether long press action has been fired

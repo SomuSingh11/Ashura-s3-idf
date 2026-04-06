@@ -47,6 +47,7 @@ public:
         // Safe to call on return from picker too —
         // picker has already updated _ssid/_pass via lambda
         if (_ssid.empty()) _ssid = _wifi.ssid();
+        if (_pass.empty()) _pass = _wifi.password();
         _dirty = true;
     }
 
@@ -148,7 +149,7 @@ private:
         const char* labels[FIELD_COUNT] = { "SSID", "Password" };
         std::string values[FIELD_COUNT] = {
             _ssid.empty() ? "(not set)" : _ssid,
-            _pass.empty() ? "(not set)" : _maskedPass()
+            _pass.empty() ? "(not set)" : _pass
         };
 
         for (int i = 0; i < FIELD_COUNT; i++) {

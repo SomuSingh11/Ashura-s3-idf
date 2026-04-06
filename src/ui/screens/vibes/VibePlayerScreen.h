@@ -33,7 +33,10 @@ class VibePlayerScreen : public IScreen {
 
         void onButtonUp()       override { _wantsPop = true; }
         void onButtonDown()     override { _wantsPop = true; }
-        void onButtonSelect()   override { _wantsPop = true; }
+        void onButtonSelect() override {
+    ESP_LOGW("BTN", "SELECT PRESSED");
+    _wantsPop = true;
+}
         void onButtonBack()     override { _wantsPop = true; }
 
         void update() override {

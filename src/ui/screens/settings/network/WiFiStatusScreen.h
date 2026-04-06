@@ -56,9 +56,12 @@ class WiFiStatusScreen : public IScreen {
 
                 case NetState::FAILED:
                     // Has credentials, just failed — retry
-                    _wifi.manualRetry();
-                    _feedback = "Retrying...";
-                    _dirty = true;
+                    // _wifi.manualRetry();
+                    // _feedback = "Retrying...";
+                    // _dirty = true;
+                    // break;
+                    // FAILED — offer choice: retry OR change credentials
+                    _pushCredentials();  // ← change this from manualRetry to credentials
                     break;
                 
                 case NetState::CONNECTED:
@@ -70,7 +73,8 @@ class WiFiStatusScreen : public IScreen {
 
                 case NetState::CONNECTING:
                 case NetState::LOST:
-                    // Do nothing — in progress
+                    // allow editing even while connecting
+                    _pushCredentials();
                     break;
             }
         }
@@ -161,15 +165,17 @@ class WiFiStatusScreen : public IScreen {
             } else {
                 switch (st) {
                     case NetState::IDLE:
+                        u.drawStr(2, 63, "[SEL] Configure");
+                        break;
                     case NetState::FAILED:
-                        u.drawStr(2, 63, "[SEL] Connect");
+                        u.drawStr(2, 63, "[SEL] Change  [LSEL] Retry");
                         break;
                     case NetState::CONNECTED:
                         u.drawStr(2, 63, "[SEL] Forget  [LSEL] Retry");
                         break;
                     case NetState::CONNECTING:
                     case NetState::LOST:
-                        u.drawStr(2, 63, "Connecting...");
+                        u.drawStr(2, 63, "[SEL] Change  [LSEL] Retry");
                         break;
                 }
             }

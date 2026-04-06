@@ -53,12 +53,23 @@ class AnimationPlayer {
         // Returns true if a new frame was drawn this tick.
         
         bool update(DisplayManager& display) {
-            if(!_animation) return false;
+            if(!_animation) {
+                ESP_LOGE("AnimPlayer", "❌ animation is NULL");
+                return false;
+            }
+
+            ESP_LOGI("AnimPlayer", "frames: %d delay: %d framePtr: %p",
+                    _animation->frameCount,
+                    _animation->frameDelayMs,
+                    _animation->frames ? _animation->frames[0] : nullptr);
+
             bool advanced = _advance();
+
             auto& u = display.raw();
             u.clearBuffer();
             _drawCurrentFrame(u);
             u.sendBuffer();
+
             return advanced;
         }
 

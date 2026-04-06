@@ -62,9 +62,13 @@ class WiFiManager {
         std::string ssid()           const { return _ssid; }
         int         rssi()           const;
         bool        hasCredentials() const { return !_ssid.empty(); }
+        std::string password()       const { return _password; }
 
         // ── NVS ───────────────────────────────────────────────────
         void loadCredentials();
+
+        // debug
+        void _debugScan();
 
     private:
         void            _startConnecting();
@@ -79,10 +83,16 @@ class WiFiManager {
         int             _attempts           = 0;
         uint64_t        _retryAfter         = 0;        // millis() when next attempt is allowed
         uint64_t        _attemptStart       = 0;        // millis() when current WiFi.begin() fired
-        bool            _attemptInFlight    = false;        
+        bool            _attemptInFlight    = false;    
+        
+        volatile bool     _driverRejected       = false;
+        volatile uint8_t  _lastDisconnectReason = 0;
+        void              _applyConfigAndConnect();
 
         // IDF netif handle — needed for IP queries
         esp_netif_t*  _netif            = nullptr;
 
         static const char* TAG;
+        static void _wifiEventHandler(void* arg, esp_event_base_t base, int32_t id, void* data);
+static void _ipEventHandler(void* arg, esp_event_base_t base, int32_t id, void* data);
 };

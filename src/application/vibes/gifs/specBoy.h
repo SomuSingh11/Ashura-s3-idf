@@ -2185,5 +2185,6 @@ const unsigned char* const specBoy_frames[32] = {
 const Animation specBoy = {
     specBoy_frames,
     32,
-    100
+    100,
+	"specBoy"
 };

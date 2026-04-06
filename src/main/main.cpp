@@ -55,7 +55,7 @@ extern "C" void app_main() {
     xTaskCreatePinnedToCore(
         main_task,              // Function to run
         "main_task",            // Task name (for debugging)
-        16384,                  // 16KB stack — AshuraCore is deep
+        32768,                  // 16KB stack — AshuraCore is deep
         nullptr,                // No parameters
         5,                      // Priority 5 — above idle, below WiFi internals
         nullptr,                // Task handle (not used)

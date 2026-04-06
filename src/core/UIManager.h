@@ -60,22 +60,24 @@ class UIManager {
 
             if(screen->needsContinuousUpdate()){
                 screen->update();
-                if(screen->wantsPop()) popScreen();
             } else if (screen->isDirty()){
                 screen->update();
             }
 
-            if(screen->wantsPop()) popScreen(); 
+            screen = currentScreen();
+            if(screen && screen->wantsPop()) popScreen(); 
         }
 
         // ===== Input Forwarding =====
         void onButtonUp() { if(currentScreen()) currentScreen()->onButtonUp(); }
         void onButtonDown() { if (currentScreen()) currentScreen()->onButtonDown(); }
         void onButtonSelect() { if (currentScreen()) currentScreen()->onButtonSelect(); }
-        void onButtonBack() {
-            if(currentScreen()) currentScreen()->onButtonBack();
-            popScreen();
+        void onButtonBack() { 
+            IScreen* screen = currentScreen();
+            if (screen) screen->onButtonBack();
+            if (_stack.size() > 1) popScreen();
         };
+
 
         void onLongPressUp() { if(currentScreen()) currentScreen()->onLongPressUp(); }
         void onLongPressDown() { if(currentScreen()) currentScreen()->onLongPressDown(); }

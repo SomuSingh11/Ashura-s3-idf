@@ -10,7 +10,7 @@ namespace Config {
         static constexpr int MAX_ATTEMPTS = 8;
         static constexpr unsigned long BACKOFF_BASE = 2000UL;
         static constexpr unsigned long BACKOFF_CAP = 60000UL;
-        static constexpr unsigned long CONNECT_TIMEOUT = 8000UL;
+        static constexpr unsigned long CONNECT_TIMEOUT = 15000UL;
     }
 }
 
@@ -41,7 +41,6 @@ namespace Config {
 // ============================================
 // OLED Display Configuration (SSD1306 128x64)
 // ============================================
-#define OLED_ADDRESS 0x3C
 #define OLED_WIDTH 128
 #define OLED_HEIGHT 64
 

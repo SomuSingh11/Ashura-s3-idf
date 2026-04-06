@@ -263,7 +263,7 @@ void AshuraCore::_bootUI()
 
   if(bootAnimation == nullptr){
     ESP_LOGI(CORE_TAG, "Using SplashScreen");
-    //_ui.pushScreen(new SplashScreen(_display));
+    _ui.pushScreen(new SplashScreen(_display));
   } else {
     ESP_LOGI(CORE_TAG, "Using VibePlayerScreen: %s", bootAnimation->name);
     _ui.pushScreen(new VibePlayerScreen(_display, bootAnimation));
@@ -378,6 +378,16 @@ void AshuraCore::_initButtons()
   };
 
   gpio_config(&io_conf);
+
+  // Seed initial button states to match physical hardware,
+  // preventing ghost edges on the first update cycle.
+  auto seedButton = [](gpio_num_t pin, BtnState& btn) {
+      bool raw = (gpio_get_level(pin) == 0); // 0 means pressed for active-low
+      btn.lastRaw      = raw;
+      btn.state        = raw;
+      btn.lastDebounce = millis();
+      btn.longFired    = false;
+  };
   ESP_LOGI(CORE_TAG, "Buttons initialized");
 }
 
