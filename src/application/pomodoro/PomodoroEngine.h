@@ -245,8 +245,6 @@ class PomodoroEngine {
                 case PomodoroState::WORK:
                     _sessionsDone++;
                     if(_sessionsDone >= _cfg.sessionsGoal) {
-                        _enterDone();
-                    } else if(_sessionsDone % _cfg.sessionsGoal == 0) {
                         _enterLongBreak(now);
                     } else {
                         _enterShortBreak(now);
@@ -254,8 +252,10 @@ class PomodoroEngine {
                     break;
 
                 case PomodoroState::SHORT_BREAK:
-                case PomodoroState::LONG_BREAK:
                     _enterWork(now);
+                    break;
+                case PomodoroState::LONG_BREAK:
+                    _enterDone();
                     break;
 
                 default:
