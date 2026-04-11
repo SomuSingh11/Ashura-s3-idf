@@ -42,7 +42,7 @@ class PomodoroSetupScreen : public IScreen {
     public:
         PomodoroSetupScreen(DisplayManager&  display, 
                             UIManager&       ui,
-                            PomodoroEngine&  engine,                    
+                            PomodoroEngine&  engine
         ): _display(display), _ui(ui), _engine(engine){}
 
         void onEnter() override {

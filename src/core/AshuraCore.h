@@ -23,10 +23,12 @@
 #include "../core/Loader.h"
 
 #include "../services/DeviceService.h"
+#include "../services/PomodoroService.h"
 
 #include "../ui/screens/HomeScreen.h"
 #include "../companion/MoodEngine.h"
 #include "../application/wled/WledManager.h"
+#include "../application/pomodoro/PomodoroEngine.h"
 
 // ============================================================
 //  AshuraCore  —  Top-level OS kernel
@@ -37,15 +39,19 @@
 //    3.  GUI / UIManager  → record_create(RECORD_GUI)
 //    4.  Loader service   → record_create(RECORD_LOADER)  
 //    5.  Register all apps with Loader                    
-//    6.  Push boot screens (Splash → Home)
-//    7.  Wire EventBus subscriptions
-//    8.  Button GPIO init
-//    9.  WiFi + NTP + WebSocket init
+//    6.  Companion + Mood init
+//    7.  WLED init        → record_create(RECORD_WLED)
+//    8.  Pomodoro engine  → record_create(RECORD_POMODORO)
+//    9.  Push boot screens (Splash → Home)
+//   10.  Wire EventBus subscriptions
+//   11.  Button GPIO init
+//   12.  Network + WebSocket + services init
 //
-//  Update loop (mirrors Flipper's OS tick):
+//  Update loop:
 //    - WiFi watchdog
 //    - NTP retry
 //    - WebSocket poll
+//    - PomodoroEngine tick
 //    - Companion update (mood decay, lerp, blink)
 //    - UI tick
 //    - HomeScreen signals
@@ -108,6 +114,7 @@ class AshuraCore {
         DeviceService       _deviceService;
         Loader              _loader;
         WledManager         _wled; 
+        PomodoroService     _pomodoroService;
 
         // ========================================================
         // Companion Subsystems
@@ -115,6 +122,11 @@ class AshuraCore {
         MoodEngine          _mood;                                  // tracks emotional state
         CompanionRenderer   _companion{_mood};                      // renders eyes from mood
 
+        // ========================================================
+        // Pomodoro Engine
+        // ========================================================
+        PomodoroEngine      _pomodoro;
+        
         // ========================================================
         // ASHURA CORE State
         // ========================================================
