@@ -219,9 +219,21 @@ void AshuraCore::_registerApps()
                     _ui.pushScreen(new VibePickerScreen(
                         _display, _ui, 1, AshuraPrefs::getBoot()));
                 }},
-                { "TODO: Home Screen", [this]() {
+                // { "TODO: Home Screen", [this]() {
+                //     _ui.pushScreen(new VibePickerScreen(
+                //         _display, _ui, 2, AshuraPrefs::getHomeScreen()));
+                // }},
+                { "Pomodoro Work", [this]() {
                     _ui.pushScreen(new VibePickerScreen(
-                        _display, _ui, 2, AshuraPrefs::getHomeScreen()));
+                        _display, _ui, 2, AshuraPrefs::getPomodoroWorkVibe()));
+                }},
+                { "Pomodoro Break", [this]() {
+                    _ui.pushScreen(new VibePickerScreen(
+                        _display, _ui, 3, AshuraPrefs::getPomodoroBreakVibe()));
+                }},
+                { "Pomodoro Complete", [this]() {
+                    _ui.pushScreen(new VibePickerScreen(
+                        _display, _ui, 4, AshuraPrefs::getPomodoroCompleteVibe()));
                 }},
             });
         }

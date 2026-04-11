@@ -72,7 +72,7 @@ class PomodoroCompleteScreen : public IScreen {
             // Detect frame wrap (one full cycle complete)
             if (frameAfter < frameBefore) {
                 _cyclesDone++;
-                if (_cyclesDone >= 5) {
+                if (_cyclesDone >= 1) {
                     _wantsPop = true;
                 }
             }

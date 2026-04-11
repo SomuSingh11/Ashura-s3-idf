@@ -56,7 +56,7 @@ class PomodoroActiveScreen : public IScreen {
     void onEnter() override {
         _wantsPop       = false;
         _lastState      = _engine.state();
-        _completePushed = false;
+        _completePushed = (_engine.state() == PomodoroState::DONE);
         _loadAnimationForState(_engine.state());
         _player.reset();
         _dirty          = true;
@@ -87,6 +87,11 @@ class PomodoroActiveScreen : public IScreen {
         _wantsPop = true;
     }
 
+    void onLongPressSelect() override {
+    _engine.skipPhase();
+    _dirty = true; // refresh HUD immediately
+    }
+
 
     void update() override {
         PomodoroState currState = _engine.state();
@@ -101,7 +106,7 @@ class PomodoroActiveScreen : public IScreen {
         if(currState == PomodoroState::DONE && !_completePushed) {
             _completePushed = true;
            _ui.pushScreen(new PomodoroCompleteScreen(_display, _ui, _engine));
-           wantsPop = true;
+           _wantsPop = true;
            return; 
         }
 
@@ -233,4 +238,4 @@ class PomodoroActiveScreen : public IScreen {
             uint32_t ss  = (rem % 60000UL) / 1000UL;
             snprintf(buf, len, "%02lu:%02lu", (unsigned long)mm, (unsigned long)ss);
         }
-}
+};

@@ -67,10 +67,10 @@ class VibePreviewScreen : public IScreen {
             switch(_mode) {
                 case 0: AshuraPrefs::setScreensaver(_vibeIndex); break;
                 case 1: AshuraPrefs::setBoot(_vibeIndex); break;
-                case 2: AshuraPrefs::setHomeScreen(_vibeIndex); break;
-                case 3: AshuraPrefs::setPomodoroWorkVibe(_vibeIndex); break;
-                case 4: AshuraPrefs::setPomodoroBreakVibe(_vibeIndex); break;
-                case 5: AshuraPrefs::setPomodoroCompleteVibe(_vibeIndex); break;
+                // case 2: AshuraPrefs::setHomeScreen(_vibeIndex); break;
+                case 2: AshuraPrefs::setPomodoroWorkVibe(_vibeIndex); break;
+                case 3: AshuraPrefs::setPomodoroBreakVibe(_vibeIndex); break;
+                case 4: AshuraPrefs::setPomodoroCompleteVibe(_vibeIndex); break;
             }
 
             if (_onConfirmed) _onConfirmed(_vibeIndex);

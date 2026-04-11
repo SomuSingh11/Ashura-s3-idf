@@ -51,6 +51,10 @@ enum class AppEvent {
     PomodoroCompleted,          // all sessions done   → companion HAPPY
     PomodoroAborted,            // user cancelled      → companion IDLE
     PomodoroBreak,              // break started, payload = "short" | "long" → companion HAPPY
+
+    // ── Companion: Spotify ────────────────────────────────────
+    SpotifyPlaying,     // track is playing  → companion EXCITED
+    SpotifyPaused,      // paused / stopped  → companion back to IDLE
 };
 
 struct EventSubscription {

@@ -97,9 +97,9 @@ class PomodoroEngine {
         }
 
         void pause() {
-            if(_state != PomodoroState::WORK ||
-               _state != PomodoroState::SHORT_BREAK ||
-               _state != PomodoroState::LONG_BREAK) return;
+                if(_state != PomodoroState::WORK &&
+                    _state != PomodoroState::SHORT_BREAK &&
+                    _state != PomodoroState::LONG_BREAK) return;
 
             _pausedState        = _state; // (work || long-break || short-break)
             _pausedRemaining    = _remaining(millis());
