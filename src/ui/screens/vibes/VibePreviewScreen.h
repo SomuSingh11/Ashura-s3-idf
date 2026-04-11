@@ -17,7 +17,13 @@
 //  SELECT → save to NVS, update picker dot, show ✓ flash, pop
 //  BACK   → pop without saving
 //
-//  MODE -> 0:ScreenSaver, 1:BootScreen, 2:HomeScreen
+//  MODE:
+//    0 = Screensaver
+//    1 = Boot Screen
+//    2 = Home Screen
+//    3 = Pomodoro Work vibe
+//    4 = Pomodoro Break vibe
+//    5 = Pomodoro Complete vibe
 // ================================================================
 
 #include "hal.h"
@@ -61,7 +67,10 @@ class VibePreviewScreen : public IScreen {
             switch(_mode) {
                 case 0: AshuraPrefs::setScreensaver(_vibeIndex); break;
                 case 1: AshuraPrefs::setBoot(_vibeIndex); break;
-                case 2: AshuraPrefs::setHomeScreen(_vibeIndex); break;
+                // case 2: AshuraPrefs::setHomeScreen(_vibeIndex); break;
+                case 2: AshuraPrefs::setPomodoroWorkVibe(_vibeIndex); break;
+                case 3: AshuraPrefs::setPomodoroBreakVibe(_vibeIndex); break;
+                case 4: AshuraPrefs::setPomodoroCompleteVibe(_vibeIndex); break;
             }
 
             if (_onConfirmed) _onConfirmed(_vibeIndex);
@@ -93,7 +102,7 @@ class VibePreviewScreen : public IScreen {
             _player.drawFrame(_display);
 
             if(!_confirmed) {
-                _drawBar(u);
+                _drawBar(u); 
             } else {
                 _drawConfirmed(u);
             }
@@ -110,7 +119,7 @@ class VibePreviewScreen : public IScreen {
         std::function<void(int)> _onConfirmed;
 
         bool                _confirmed = false;
-        uint64_t       _confirmedAt = 0;
+        uint64_t            _confirmedAt = 0;
         bool                _wantsPop = false;
 
         void _drawBar(U8G2& u){

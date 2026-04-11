@@ -43,11 +43,14 @@ enum class AppEvent {
     SystemTick,    // published every loop(), used by games/animations
     SystemBoot,    // published at the end of init()
 
-    // ── Companion: Pomodoro ───────────────────────────────────
-    PomodoroStarted,    // session began   → companion goes FOCUSED
-    PomodoroCompleted,  // full session ✓  → companion goes HAPPY
-    PomodoroAborted,    // user cancelled  → companion goes IDLE
-    PomodoroBreak,      // break started   → companion goes HAPPY
+    // ── Companion + Pomodoro ───────────────────────────────────
+    PomodoroStarted,            // work session began   → companion FOCUSED
+    PomodoroTick,               // every second while active, payload = remaining ms string
+    PomodoroPaused,             // session paused
+    PomodoroResumed,            // session resumed
+    PomodoroCompleted,          // all sessions done   → companion HAPPY
+    PomodoroAborted,            // user cancelled      → companion IDLE
+    PomodoroBreak,              // break started, payload = "short" | "long" → companion HAPPY
 
     // ── Companion: Spotify ────────────────────────────────────
     SpotifyPlaying,     // track is playing  → companion EXCITED

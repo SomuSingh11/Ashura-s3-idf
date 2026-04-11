@@ -31,6 +31,9 @@
 #include "../ui/screens/vibes/VibePlayerScreen.h"
 #include "../application/vibes/VibeRegistry.h"
 
+// ── Pomodoro ──────────────────────────────────────────────────
+#include "../ui/screens/pomodoro/PomodoroSetupScreen.h"
+
 #include "ui/assets/icons/clock.h"
 #include "ui/assets/icons/games.h"
 #include "ui/assets/icons/settings.h"
@@ -84,16 +87,20 @@ void AshuraCore::init()
   _wled.begin();
   record_create(RECORD_WLED, &_wled);
 
-  // ── 7. Boot UI Sequence ─────────────────────────────────────────
+  // ── 7. Pomodoro Engine ──────────────────────────────────────────
+  record_create(RECORD_POMODORO, &_pomodoro);
+  ESP_LOGI(CORE_TAG, "PomodoroEngine ready");
+
+  // ── 8. Boot UI Sequence ─────────────────────────────────────────
   _bootUI();
 
-  // ── 8. EventBus Wiring ──────────────────────────────────────────
+  // ── 9. EventBus Wiring ──────────────────────────────────────────
   _wireEvents();
 
-  // ── 9. Button Initialization ────────────────────────────────────
+  // ── 10. Button Initialization ────────────────────────────────────
   _initButtons();
 
-  // ── 10. Network & WebSocket Initialization ───────────────────────
+  // ── 11. Network & WebSocket Initialization ───────────────────────
   _initNetwork();
 
   ESP_LOGI(CORE_TAG, "Boot complete");
@@ -108,6 +115,10 @@ void AshuraCore::update(){
   uint64_t now = millis();
   
   _updateNetwork(now);
+
+  // ── Pomodoro Engine Tick ─────────────────────────────────────
+  // Engine publishes EventBus events which drive MoodEngine
+  _pomodoro.update(now);
 
   // ── Companion Systems (Mood Update — mood decay + lerp + blink + micro) ──────────
   _mood.update(now);
@@ -167,7 +178,7 @@ void AshuraCore::_registerApps()
         [this](DisplayManager& d) -> IScreen* {
             return new SubMenuScreen(d, "Clock", {
                 { "Clock Face", [this]() { _ui.pushScreen(new ClockFaceScreen(_display)); } },
-                { "TODO: Pomodoro",   [this]() {  } },
+                { "Pomodoro",   [this]() { _ui.pushScreen(new PomodoroSetupScreen(_display, _ui, _pomodoro)); } },
                 { "TODO: Stopwatch",  [this]() { } },
             });
         }
@@ -208,9 +219,21 @@ void AshuraCore::_registerApps()
                     _ui.pushScreen(new VibePickerScreen(
                         _display, _ui, 1, AshuraPrefs::getBoot()));
                 }},
-                { "TODO: Home Screen", [this]() {
+                // { "TODO: Home Screen", [this]() {
+                //     _ui.pushScreen(new VibePickerScreen(
+                //         _display, _ui, 2, AshuraPrefs::getHomeScreen()));
+                // }},
+                { "Pomodoro Work", [this]() {
                     _ui.pushScreen(new VibePickerScreen(
-                        _display, _ui, 2, AshuraPrefs::getHomeScreen()));
+                        _display, _ui, 2, AshuraPrefs::getPomodoroWorkVibe()));
+                }},
+                { "Pomodoro Break", [this]() {
+                    _ui.pushScreen(new VibePickerScreen(
+                        _display, _ui, 3, AshuraPrefs::getPomodoroBreakVibe()));
+                }},
+                { "Pomodoro Complete", [this]() {
+                    _ui.pushScreen(new VibePickerScreen(
+                        _display, _ui, 4, AshuraPrefs::getPomodoroCompleteVibe()));
                 }},
             });
         }
@@ -359,6 +382,28 @@ void AshuraCore::_wireEvents()
     // so no explicit call needed — just log here
     ESP_LOGI(CORE_TAG, "Notification: %s", title.c_str());
   });
+
+  // ── Pomodoro Events → HomeScreen ticker ──────────────────────
+  Bus().subscribe(AppEvent::PomodoroStarted, [this]() {
+    ESP_LOGI(CORE_TAG, "Pomodoro started");
+    if (_homeScreen) _homeScreen->setLastMessage("Pomodoro started!");
+  });
+ 
+  Bus().subscribe(AppEvent::PomodoroBreak, [this](const std::string& kind) {
+    ESP_LOGI(CORE_TAG, "Pomodoro break: %s", kind.c_str());
+    std::string msg = (kind == "long") ? "Long break — well done!"
+                                       : "Short break — take a breath.";
+    if (_homeScreen) _homeScreen->setLastMessage(msg);
+  });
+ 
+  Bus().subscribe(AppEvent::PomodoroCompleted, [this]() {
+    ESP_LOGI(CORE_TAG, "Pomodoro completed");
+    if (_homeScreen) _homeScreen->setLastMessage("All sessions complete!");
+  });
+ 
+  Bus().subscribe(AppEvent::PomodoroAborted, [this]() {
+    ESP_LOGI(CORE_TAG, "Pomodoro aborted");
+  });
 }
 
 
@@ -420,6 +465,7 @@ void AshuraCore::_initNetwork()
 
   // ── Message Routing Services ────────────────────────────────
   _router.registerService(&_deviceService);
+  _router.registerService(&_pomodoroService);
 
   // ── Seed state tracking ───────────────────────────────────
     _prevNetState = _wifi.state();

@@ -8,16 +8,12 @@
 // ============================================================
 //  AshuraPrefs  —  Persistent user preferences via ESP32 NVS
 //
-//  Wraps ESP32's Preferences library (key-value NVS flash store).
-//  Keys are namespaced under "ashura" to avoid collisions.
+//  Wraps ESP32's NVS flash key-value store.
+//  Keys are namespaced to avoid collisions.
 //
-//  Current keys:
-//    aura_ss    → int  screensaver vibe index (default 0)
-//    aura_boot  → int  boot animation index   (default 0)
-//
-//  Usage:
-//    AshuraPrefs::setScreensaver(1);
-//    int idx = AshuraPrefs::getScreensaver(); // → 1
+//  Namespaces:
+//    "ashura_vibes"  → animation selection (screensaver, boot, home)
+//    "ashura_pomo"   → Pomodoro config + vibe selection
 //
 //  NVS survives power cycles and OTA updates.
 //  Flash wear: NVS uses wear-levelling, safe for frequent writes.
@@ -25,6 +21,8 @@
 
 class AshuraPrefs {
     public:
+
+        // ── Screen Preferences: Vibe selections ──────────────────
 
         // ── Screensaver index ────────────────────────────────────
         static int getScreensaver() {
@@ -56,10 +54,65 @@ class AshuraPrefs {
             ESP_LOGI(TAG, "HomeScreen → %d", index);
         }
 
+
+        // ── Pomodoro : Vibe selections ────────────────────────────
+
+        // ── workVibe ──────────────────────────────────────────────
+        static int getPomodoroWorkVibe() { return _getInt("ashura_pomo", "work_vibe", 0); }
+
+        static void setPomodoroWorkVibe(int index) {
+            _setInt("ashura_pomo", "work_vibe", index);
+            ESP_LOGI(TAG, "Pomodoro work vibe → %d", index);
+        }
+
+        // ── breakVibe ──────────────────────────────────────────────
+        static int getPomodoroBreakVibe() { return _getInt("ashura_pomo", "break_vibe", 3); }
+
+        static void setPomodoroBreakVibe(int index) {
+            _setInt("ashura_pomo", "break_vibe", index);
+            ESP_LOGI(TAG, "Pomodoro break vibe → %d", index);
+        }
+
+        // ── completeVibe ──────────────────────────────────────────────
+        static int getPomodoroCompleteVibe() { return _getInt("ashura_pomo", "complete_vibe", 6); }
+
+        static void setPomodoroCompleteVibe(int index) {
+            _setInt("ashura_pomo", "complete_vibe", index);
+            ESP_LOGI(TAG, "Pomodoro complete vibe → %d", index);
+        }
+
+
+        // ── Pomodoro : Timer durations ───────────────────────────
+        static int getPomodoroWorkMin()      { return _getInt("ashura_pomo", "work_min",       25); }
+        static void setPomodoroWorkMin(int m) {
+            _setInt("ashura_pomo", "work_min", m);
+        }
+
+        static int getPomodoroShortBreakMin(){ return _getInt("ashura_pomo", "short_break_min", 5); }
+        static void setPomodoroShortBreakMin(int m) {
+            _setInt("ashura_pomo", "short_break_min", m);
+        }
+
+        static int getPomodoroLongBreakMin() { return _getInt("ashura_pomo", "long_break_min", 15); }
+        static void setPomodoroLongBreakMin(int m) {
+            _setInt("ashura_pomo", "long_break_min", m);
+        }
+
+        static int getPomodoroSessionsGoal() { return _getInt("ashura_pomo", "sessions_goal",   4); }
+        static void setPomodoroSessionsGoal(int n) {
+            _setInt("ashura_pomo", "sessions_goal", n);
+        }
+
+
         // ── Reset all prefs to defaults ──────────────────────────
         static void resetAll() {
             nvs_handle_t handle;
             if (nvs_open("ashura_vibes", NVS_READWRITE, &handle) == ESP_OK) {
+                nvs_erase_all(handle);
+                nvs_commit(handle);
+                nvs_close(handle);
+            }
+            if (nvs_open("ashura_pomo", NVS_READWRITE, &handle) == ESP_OK) {
                 nvs_erase_all(handle);
                 nvs_commit(handle);
                 nvs_close(handle);
